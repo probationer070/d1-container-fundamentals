@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1.7
+# =============================================================================
+# Distroless variant: no shell, no package manager, no apt — minimal attack
+# surface. Build:  docker build -f Dockerfile.distroless -t d1-health-api:distroless .
+#
+# GOTCHA (important): gcr.io/distroless/python3-debian12 ships the Python that
+# Debian 12 (bookworm) provides == Python 3.11. The builder MUST match that
+# minor version, or the copied packages/bytecode break at runtime. We therefore
+# pin the builder to 3.11-slim here, NOT 3.12.
+# =============================================================================
+
+FROM python:3.11-slim AS builder
+WORKDIR /app
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+COPY app/requirements.txt .
+# --target installs into a plain directory we can copy wholesale. No venv: a
+# venv hardcodes interpreter paths that won't exist in the distroless layer.
+RUN pip install --no-cache-dir --target=/install -r requirements.txt
+
+FROM gcr.io/distroless/python3-debian12:nonroot AS runtime
+ARG APP_VERSION=0.0.0-dev
+ARG GIT_SHA=unknown
+ENV APP_VERSION=${APP_VERSION} \
+    GIT_SHA=${GIT_SHA} \
+    PYTHONPATH=/install \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+COPY --from=builder /install /install
+COPY app/ ./app/
+# The :nonroot tag already runs as uid 65532 — no USER line needed.
+
+EXPOSE 8000
+
+# Exec form only — there is no shell to interpret "|| exit 1".
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD ["python", "/app/app/healthcheck.py"]
+
+# `python -m uvicorn` (not the uvicorn console script): the script's shebang
+# points at the builder's interpreter path, which is absent in distroless.
+ENTRYPOINT ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

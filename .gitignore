@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local env files (never commit secrets)
+.env
+.env.*
+
+# Local virtualenvs
+.venv/
+venv/
+
+# 
+*..Identifier
+*.identifier

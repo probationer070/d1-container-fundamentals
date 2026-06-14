@@ -1,0 +1,6 @@
+failure-threshold: warning
+# DL3008: pin apt versions — N/A here (no apt). Kept as a reminder for later projects.
+ignored: []
+trustedRegistries:
+  - docker.io
+  - gcr.io
