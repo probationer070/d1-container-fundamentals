@@ -67,7 +67,7 @@ trivy, make, python3, git) on macOS / Windows(WSL2) / Linux.
 make help          # list all targets
 make test          # pytest — gates the build
 make lint          # hadolint on both Dockerfiles, 0 warnings expected
-make sizes         # build naive + slim + distroless, print real size table
+make sizes         # build naive + slim + distroless, print real size table - should be run Docker Desktop
 make run           # docker compose up --build
 make scan          # trivy CVE scan of the slim image (preview of D5)
 ```
@@ -76,15 +76,21 @@ make scan          # trivy CVE scan of the slim image (preview of D5)
 
 ## Measured image sizes
 
-> Fill this in after running `make sizes` on your machine — these are the D1
-> deliverable numbers. Sizes vary slightly by platform/arch and base-image
-> digest at build time, so use **your own measured values**, not estimates.
-
 | Variant | Size | Notes |
 |---|---|---|
 | `d1-health-api:naive` | 1.17GB | Full `python:3.12`, root, unoptimized cache order |
 | `d1-health-api:slim` | 169MB | Multi-stage, `python:3.12-slim`, non-root |
 | `d1-health-api:distroless` | 89.1MB | `gcr.io/distroless/python3-debian12:nonroot` |
+
+---
+
+## Definition of Done
+
+| Criterion | Status |
+|-----------|--------|
+| Naive vs optimised size comparison table in README | ✅ |
+| `hadolint` 0 warnings — `make lint` | ✅ |
+| 0 critical CVEs — `make scan` | ✅ |
 
 ---
 
@@ -118,6 +124,26 @@ so `SIGTERM` goes to the shell, not uvicorn — the process often doesn't shut
 down cleanly until SIGKILL. `CMD ["uvicorn", "app.main:app", ...]` (exec form)
 makes uvicorn PID 1 and lets it handle SIGTERM directly. This matters for D8:
 clean shutdown is what makes rolling updates not drop in-flight requests.
+
+**ADR-5: Distroless over Alpine for the minimal variant.**
+Alpine uses `musl libc` instead of glibc. Python wheels built for glibc may
+link glibc symbols absent in musl — causing import errors at runtime that don't
+appear at build time (the wheel installs cleanly; it crashes when it runs).
+Distroless uses Debian's glibc, so wheels built against `python:3.12-slim` are
+binary-compatible with no recompilation. For a statically-linked Go or Rust
+binary, Alpine is an excellent choice; for Python, distroless is safer.
+
+**ADR-6: `COPY` dependency manifest first, then install, then `COPY` source.**
+When `COPY . .` precedes `pip install`, any single-line code change invalidates the install layer and forces a full dependency reinstall on every build. Copying only `requirements.txt` first, running the install, then copying source keeps the expensive install layer cached as long as dependencies don't change. On a project with heavy wheels this is the difference between a 30-second and a 3-minute CI build. The same principle applies in every language: `package.json` before `npm install`, `go.mod` before `go mod download`.
+
+---
+
+## Common Pitfalls
+
+- **`FROM ubuntu` + `apt install` everything** — build tools end up in the final image; image bloats to GB range with no multi-stage separation.
+- **`COPY . .` before `pip install`** — any single-line code change invalidates the dependency layer, triggering a full reinstall on every build. Always copy the manifest first, install, then copy source (see cache-ordering comment in `Dockerfile`).
+- **Secrets in build `ARG`** — visible in `docker image history` even after the layer is "overwritten." Use BuildKit `--secret` mount or inject at runtime via env; never bake credentials into image layers.
+- **`latest` or floating base image tags** — `python:3.12-slim` today and tomorrow are different digests; the build is not reproducible. Pin to a digest (`@sha256:...`) for production; at minimum use a minor-version tag, not `3-slim`.
 
 ---
 

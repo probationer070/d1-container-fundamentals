@@ -3,7 +3,7 @@ TAG         ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo local)
 APP_VERSION ?= $(shell git describe --tags --always 2>/dev/null || echo 0.0.0-dev)
 BA          := --build-arg APP_VERSION=$(APP_VERSION) --build-arg GIT_SHA=$(TAG)
 
-.PHONY: help lint test build build-distroless build-naive sizes run scan clean
+.PHONY: help lint test build build-distroless build-naive sizes run scan clean down
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -45,5 +45,9 @@ run: ## Run locally via compose
 scan: build ## Trivy scan the slim image (a preview of D5)
 	trivy image --severity HIGH,CRITICAL $(IMAGE):slim
 
-clean: ## Remove built images
+down: ## Stop and remove D1 containers and network (images and volumes kept)
+	docker compose down
+
+clean: ## Remove D1 containers/network AND the three built images
+	docker compose down
 	-docker rmi $(IMAGE):naive $(IMAGE):slim $(IMAGE):distroless 2>/dev/null || true

@@ -298,8 +298,7 @@ Stop everything with `Ctrl-C` in the `make run` terminal, then `docker compose d
 
 ## 8. What this unlocks next
 
-Once this toolchain is in place you're ready for **D2** (Gitea + Postgres + runner
-via Compose) with zero new host tooling — D2 only adds *images*, not laptop
-dependencies. The first genuinely new tool arrives at **D3** (a self-hosted Gitea
-Actions runner) and **D8** (a `kubectl` + `k3s`/`kind` for orchestration). Until
-then, this is your whole environment.
+Once this toolchain is in place you're ready for **D2** (Gitea + Postgres + Act
+Runner via Compose) with zero new host tooling — D2 only adds containers, not
+laptop dependencies. The first genuinely new tool arrives at **D8** (`kubectl` +
+`k3s`/`kind` for orchestration). Until then, this is your whole environment.

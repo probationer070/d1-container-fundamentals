@@ -1,10 +1,4 @@
 # syntax=docker/dockerfile:1.7
-# =============================================================================
-# Primary production image: multi-stage, slim base, non-root, healthcheck.
-# Build:  docker build -t d1-health-api:slim .
-# =============================================================================
-
-# ---- builder: compile deps into an isolated venv -----------------------------
 FROM python:3.12-slim AS builder
 WORKDIR /app
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -17,7 +11,6 @@ COPY app/requirements.txt .
 RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
-# ---- runtime: copy only the venv + app, drop all build tooling ---------------
 FROM python:3.12-slim AS runtime
 
 # Version metadata is baked in at build time so the image can report itself
