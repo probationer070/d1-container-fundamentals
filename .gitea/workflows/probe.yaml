@@ -24,4 +24,4 @@ jobs:
         run: docker buildx inspect --bootstrap
 
       - name: Confirm QEMU platforms
-        run: docker buildx inspect --bootstrap | grep Platforms
+        run: docker buildx inspect | grep -i 'linux/arm64'
