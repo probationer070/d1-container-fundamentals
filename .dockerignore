@@ -1,0 +1,21 @@
+# Everything here is excluded from the build context => smaller, faster builds
+# and no accidental secrets/junk baked into layers.
+.git
+.gitignore
+.github
+.gitea
+**/__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.venv
+venv
+env
+tests
+*.md
+Dockerfile*
+compose.yaml
+Makefile
+.hadolint.yaml
+.env
+.env.*

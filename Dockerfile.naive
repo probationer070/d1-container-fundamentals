@@ -1,0 +1,15 @@
+# =============================================================================
+# ANTI-PATTERN ON PURPOSE. This is the "before" image for the size comparison.
+# Do not copy this style into real projects. See README for what's wrong:
+#   - full python image (~1GB) instead of slim
+#   - runs as root
+#   - `COPY . .` before install => any code change busts the dependency cache
+#   - copies .git, tests, docs into the image (bloat + leak risk)
+#   - shell-form CMD => SIGTERM goes to /bin/sh, not uvicorn (slow/unclean stop)
+#   - no HEALTHCHECK, no pinned base digest
+# =============================================================================
+FROM python:3.12
+WORKDIR /app
+COPY . .
+RUN pip install -r app/requirements.txt
+CMD uvicorn app.main:app --host 0.0.0.0 --port 8000

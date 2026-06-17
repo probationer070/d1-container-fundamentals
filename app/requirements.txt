@@ -1,0 +1,4 @@
+# Pinned for reproducible builds. Update deliberately, not implicitly.
+# Resolved + tested on 2026-06-11.
+fastapi==0.136.3
+uvicorn[standard]==0.49.0

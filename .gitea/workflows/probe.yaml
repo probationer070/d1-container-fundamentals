@@ -1,0 +1,27 @@
+name: Buildx Probe
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docker version
+        run: docker version
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Buildx version
+        run: docker buildx version
+
+      - name: Buildx inspect
+        run: docker buildx inspect --bootstrap
+
+      - name: Confirm QEMU platforms
+        run: docker buildx inspect | grep -i 'linux/arm64'
