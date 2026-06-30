@@ -7,7 +7,7 @@ on:
 permissions:
   contents: read
   packages: write
-  id-token: write   # D4: required for cosign OIDC keyless signing (seed present, inactive)
+  id-token: write   # D4: required for cosign OIDC keyless signing (active)
 
 jobs:
   build-push:
@@ -58,7 +58,24 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
 
-      - name: Sign image
-        # D4: remove 'if: false' and configure keyless signing
-        if: false
-        run: cosign sign --yes ghcr.io/probationer070/d1-health-api@${{ steps.build.outputs.digest }}
+      - name: Sign image (cosign OIDC keyless)
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE_REF: ghcr.io/probationer070/d1-health-api
+        run: |
+          echo "Digest: $IMAGE_DIGEST"
+          if [ -z "$IMAGE_DIGEST" ]; then
+            echo "ERROR: build step did not output a digest" && exit 1
+          fi
+          cosign sign --yes "${IMAGE_REF}@${IMAGE_DIGEST}"
+
+      - name: Verify signature
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE_REF: ghcr.io/probationer070/d1-health-api
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          cosign verify \
+            --certificate-identity "${WORKFLOW_REF}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "${IMAGE_REF}@${IMAGE_DIGEST}"
